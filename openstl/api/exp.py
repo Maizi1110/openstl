@@ -27,9 +27,12 @@ class BaseExperiment(object):
         self.args.method = self.args.method.lower()
         self._dist = self.args.dist
 
+        self._apply_auto_ex_name(args)
         base_dir = args.res_dir if args.res_dir is not None else 'work_dirs'
-        save_dir = osp.join(base_dir, args.ex_name if not args.ex_name.startswith(args.res_dir)
-                            else args.ex_name.split(args.res_dir + '/')[-1])
+        ex_name = str(args.ex_name)
+        if ex_name.startswith(base_dir):
+            ex_name = ex_name[len(base_dir):].lstrip('/\\\\')
+        save_dir = osp.join(base_dir, ex_name)
         ckpt_dir = osp.join(save_dir, 'checkpoints')
 
         seed_everything(args.seed)
@@ -43,6 +46,33 @@ class BaseExperiment(object):
         )
         callbacks, self.save_dir = self._load_callbacks(args, save_dir, ckpt_dir)
         self.trainer = self._init_trainer(self.args, callbacks, strategy)
+
+    @staticmethod
+    def _auto_ex_name(args):
+        dataname = str(getattr(args, 'dataname', 'data')).lower()
+        method = str(getattr(args, 'method', 'method')).lower()
+        date_tag = time.strftime('%m%d', time.localtime())
+
+        pre = getattr(args, 'pre_seq_length', None)
+        aft = getattr(args, 'aft_seq_length', None)
+        if pre is None:
+            in_shape = getattr(args, 'in_shape', None)
+            if isinstance(in_shape, (list, tuple)) and len(in_shape) > 0:
+                pre = in_shape[0]
+        if aft is None:
+            total = getattr(args, 'total_length', None)
+            if pre is not None and total is not None:
+                aft = int(total) - int(pre)
+
+        pre = str(pre) if pre is not None else 'na'
+        aft = str(aft) if aft is not None else 'na'
+        return f'{dataname}_{method}_{date_tag}_{pre}{aft}'
+
+    def _apply_auto_ex_name(self, args):
+        ex_name = getattr(args, 'ex_name', None)
+        if ex_name is None or str(ex_name).strip() == '' or str(ex_name).strip().lower() == 'debug':
+            args.ex_name = self._auto_ex_name(args)
+            print(f'info: auto ex_name -> {args.ex_name}')
 
     def _is_global_zero(self):
         # Lightning spawns multiple processes in DDP; only rank 0 should print heavy model info.

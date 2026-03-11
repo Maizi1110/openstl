@@ -1,0 +1,158 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Git 操作手册（含用户名邮箱配置）</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #0f766e;
+      --codebg: #0b1020;
+      --codefg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 10% 10%, #e7f9f5 0, transparent 40%), var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .wrap { max-width: 920px; margin: 36px auto; padding: 0 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.05);
+      padding: 28px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.35; }
+    h1 { font-size: 30px; }
+    h2 { margin-top: 26px; font-size: 22px; border-left: 5px solid var(--accent); padding-left: 10px; }
+    h3 { margin-top: 20px; font-size: 18px; }
+    p { margin: 8px 0; }
+    ol, ul { margin: 8px 0 0 24px; }
+    li { margin: 6px 0; }
+    code {
+      background: #eef2ff;
+      color: #1d4ed8;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-family: Consolas, Menlo, monospace;
+      font-size: .95em;
+    }
+    pre {
+      margin: 10px 0 0;
+      background: var(--codebg);
+      color: var(--codefg);
+      border-radius: 12px;
+      padding: 14px;
+      overflow: auto;
+      border: 1px solid #20293f;
+    }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    .note {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+      color: #155e75;
+    }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Git 操作手册（含用户名邮箱配置）</h1>
+
+      <h2>1. 你要记住的主线</h2>
+      <ol>
+        <li>家里电脑：<code>add -&gt; commit -&gt; push</code>（把代码传到 GitHub）</li>
+        <li>学校电脑：<code>pull</code>（把 GitHub 最新代码拉下来）</li>
+      </ol>
+
+      <h2>2. 第一次使用 Git（先做这个）</h2>
+      <h3>2.1 配置用户名和邮箱（全局）</h3>
+      <pre><code>git config --global user.name "Maizi1110"
+git config --global user.email "你的GitHub邮箱"</code></pre>
+      <p>作用：这两项会写进提交记录里，别人能看到是谁提交的。</p>
+
+      <h3>2.2 检查是否配置成功</h3>
+      <pre><code>git config --global --get user.name
+git config --global --get user.email</code></pre>
+
+      <h3>2.3 如果填错了，直接覆盖</h3>
+      <pre><code>git config --global user.name "新名字"
+git config --global user.email "新邮箱"</code></pre>
+
+      <h3>2.4 只想当前仓库用不同身份（可选）</h3>
+      <pre><code>git config user.name "当前仓库名字"
+git config user.email "当前仓库邮箱"</code></pre>
+      <p>说明：不加 <code>--global</code> 就是仅当前仓库生效。</p>
+
+      <h2>3. 常用指令说明（逐条）</h2>
+      <ol>
+        <li><code>git status</code>：看当前有哪些文件改了、哪些还没提交。</li>
+        <li><code>git add .</code>：把当前目录下所有改动放进暂存区。</li>
+        <li><code>git commit -m "说明文字"</code>：把暂存区内容打成一次提交（快照）。</li>
+        <li><code>git push origin master</code>：把本地提交上传到 GitHub 的 <code>master</code> 分支。</li>
+        <li><code>git pull origin master</code>：把 GitHub 上 <code>master</code> 的最新代码拉到本地。</li>
+        <li><code>git clone 仓库地址</code>：第一次在新电脑下载整个仓库。</li>
+        <li><code>git branch --show-current</code>：看当前所在分支。</li>
+        <li><code>git remote -v</code>：看当前仓库绑定的远程地址。</li>
+        <li><code>git remote set-url origin 仓库地址</code>：远程地址绑错时改成正确地址。</li>
+      </ol>
+
+      <h2>4. 你的固定流程（最简版）</h2>
+      <h3>4.1 家里电脑改完后</h3>
+      <pre><code>git status
+git add .
+git commit -m "本次修改说明"
+git push origin master</code></pre>
+
+      <h3>4.2 学校电脑开工前</h3>
+      <pre><code>git pull origin master</code></pre>
+
+      <h2>5. 学校电脑第一次拉代码（只做一次）</h2>
+      <pre><code>git clone https://github.com/Maizi1110/openstl.git
+cd openstl
+git checkout master</code></pre>
+
+      <p>可额外检查远程地址是否正确：</p>
+      <pre><code>git remote -v</code></pre>
+
+      <h2>6. 常见问题处理</h2>
+      <h3>6.1 nothing to commit</h3>
+      <p>意思：没有新改动，不需要 commit。</p>
+
+      <h3>6.2 failed to push（远程比你新）</h3>
+      <pre><code>git pull --rebase origin master
+git push origin master</code></pre>
+
+      <h3>6.3 Authentication failed</h3>
+      <p>意思：认证失败（密码方式不可用或凭据失效）。</p>
+      <p>处理：使用 GitHub Token 作为密码，或清理旧凭据后重新登录。</p>
+
+      <h3>6.4 本地仓库绑错远程</h3>
+      <pre><code>git remote set-url origin https://github.com/Maizi1110/openstl.git
+git remote -v</code></pre>
+
+      <h2>7. 约定</h2>
+      <ul>
+        <li>主分支使用 <code>master</code>。</li>
+        <li>仓库地址固定为 <code>https://github.com/Maizi1110/openstl.git</code>。</li>
+      </ul>
+
+      <div class="note">提示：这个页面是本地静态文件，可直接双击打开；也可以在 PyCharm 里预览。</div>
+      <div class="footer">Generated in OpenSTL workspace · docs/git_manual_zh.html</div>
+    </div>
+  </div>
+</body>
+</html>
