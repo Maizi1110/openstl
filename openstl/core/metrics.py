@@ -1,4 +1,4 @@
-# import cv2
+﻿# import cv2
 # import numpy as np
 # import torch
 #
@@ -278,7 +278,7 @@
 #
 #     if 'lpips' in metrics:
 #         lpips = 0
-#         cal_lpips = LPIPS(net='alex', use_gpu=False)
+#         cal_lpips = get_lpips_model(net='alex', use_gpu=False)
 #         pred = pred.transpose(0, 1, 3, 4, 2)
 #         true = true.transpose(0, 1, 3, 4, 2)
 #         for b in range(pred.shape[0]):
@@ -304,6 +304,10 @@ try:
 except:
     lpips = None
     cal_ssim = None
+
+
+_LPIPS_MODEL_CACHE = {}
+
 
 
 def rescale(x):
@@ -438,6 +442,14 @@ class LPIPS(torch.nn.Module):
         return self.loss_fn.forward(img1, img2).squeeze().detach().cpu().numpy()
 
 
+def get_lpips_model(net='alex', use_gpu=False):
+    use_gpu = bool(use_gpu and torch.cuda.is_available())
+    cache_key = (net, use_gpu)
+    if cache_key not in _LPIPS_MODEL_CACHE:
+        _LPIPS_MODEL_CACHE[cache_key] = LPIPS(net=net, use_gpu=use_gpu)
+    return _LPIPS_MODEL_CACHE[cache_key]
+
+
 def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
            clip_range=[0, 1], channel_names=None,
            spatial_norm=False, return_log=True, threshold=74.0):
@@ -494,7 +506,7 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
             eval_res['rmse'] = rmse_sum / c_group
 
     # =========================================================================
-    # 🚀 核心修复：支持多阈值循环遍历 (解决 None 报错和列表传入问题)
+    # 馃殌 鏍稿績淇锛氭敮鎸佸闃堝€煎惊鐜亶鍘?(瑙ｅ喅 None 鎶ラ敊鍜屽垪琛ㄤ紶鍏ラ棶棰?
     # =========================================================================
     if any(m in metrics for m in ['pod', 'sucr', 'csi', 'hss']):
         if threshold is None:
@@ -507,7 +519,7 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
         for th in thresholds:
             hits, fas, misses, cns = sevir_metrics(pred, true, th)
 
-            # 使用格式化字符串，使最终成绩单上的后缀更清晰 (如 csi_0.0020)
+            # 浣跨敤鏍煎紡鍖栧瓧绗︿覆锛屼娇鏈€缁堟垚缁╁崟涓婄殑鍚庣紑鏇存竻鏅?(濡?csi_0.0020)
             suffix = f'_{th:.4f}' if len(thresholds) > 1 else ''
 
             if 'pod' in metrics:
@@ -545,7 +557,7 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
 
     if 'lpips' in metrics:
         lpips = 0
-        cal_lpips = LPIPS(net='alex', use_gpu=False)
+        cal_lpips = get_lpips_model(net='alex', use_gpu=False)
         pred = pred.transpose(0, 1, 3, 4, 2)
         true = true.transpose(0, 1, 3, 4, 2)
         for b in range(pred.shape[0]):
