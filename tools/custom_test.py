@@ -1,4 +1,4 @@
-﻿import gc
+import gc
 import os
 import re
 import time
@@ -103,14 +103,22 @@ def to_pixel_space(tensor, eval_mode, data_mean, data_std):
     return tensor * 255.0 if tensor.max() <= 2.0 else tensor
 
 
+def ensure_custom_test_args(parser):
+    existing_dests = {action.dest for action in parser._actions}
+    if 'save_root' not in existing_dests:
+        parser.add_argument('--save_root', default='./results/custom_test', type=str,
+                            help='Root dir for evaluation reports')
+    if 'run_id' not in existing_dests:
+        parser.add_argument('--run_id', default=None, type=str,
+                            help='Run id used in report file name, default MMDDHH')
+    if 'metric_set' not in existing_dests:
+        parser.add_argument('--metrics', dest='metric_set', default='main', type=str,
+                            help='Metric set: main | all | comma list')
+    return parser
+
+
 def parse_and_merge_config():
-    parser = create_parser()
-    parser.add_argument('--save_root', default='./results/custom_test', type=str,
-                        help='Root dir for evaluation reports')
-    parser.add_argument('--run_id', default=None, type=str,
-                        help='Run id used in report file name, default MMDDHH')
-    parser.add_argument('--metrics', dest='metric_set', default='main', type=str,
-                        help='Metric set: main | all | comma list')
+    parser = ensure_custom_test_args(create_parser())
     args = parser.parse_args()
     cli_override_keys = get_cli_override_keys(parser)
 
@@ -531,3 +539,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
