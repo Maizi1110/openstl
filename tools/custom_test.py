@@ -1,4 +1,4 @@
-import gc
+﻿import gc
 import os
 import re
 import time
@@ -155,19 +155,20 @@ def build_model(args, config, device):
     is_official_exprecast = False
 
     if args.method == 'exprecast':
-        from openstl.models.exprecast import exPreCast_Model
-
         if getattr(args, 'ckpt_path', None) and 'pretrained_sevir' in args.ckpt_path.lower():
+            from openstl.models.exprecast_model import exPreCast_Model
+
             is_official_exprecast = True
-            config['embed_dim'] = 96
-            config['depths'] = [2, 2, 6, 2]
-            config['num_heads'] = [3, 6, 12, 24]
-            config['window_size'] = (2, 7, 7)
-            config['skip_connection'] = 'add'
-            config['patch_norm'] = False
+            config.setdefault('embed_dim', 96)
+            config.setdefault('window_size', (2, 7, 7))
+            config.setdefault('skip_connection', 'add')
+            config.setdefault('patch_norm', False)
+            if config.get('aft_seq_length') is not None and config.get('output_frames') is None:
+                config['output_frames'] = config['aft_seq_length']
+        else:
+            from openstl.models.exprecast_model import exPreCast_Model
 
         model = exPreCast_Model(**config).to(device)
-
     elif args.method == 'alphapre':
         from openstl.models.alphapre_model import get_model
 

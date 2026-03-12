@@ -6,11 +6,10 @@ pre_seq_length = 13
 aft_seq_length = 12
 total_length = 25
 
-batch_size = 1
-val_batch_size = 1
+batch_size = 6
+val_batch_size = 6
 epoch = 100
 lr = 1e-4
 
 data_name = 'vil'
 metrics = ['mse', 'mae', 'pod', 'sucr', 'csi', 'lpips']
-

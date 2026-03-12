@@ -251,8 +251,38 @@ class PatchExpanding3D(nn.Module):
         super().__init__()
         self.deproj = nn.ConvTranspose3d(embed_dim, out_chans, kernel_size=patch_size, stride=patch_size)
 
-    def forward(self, x): return self.deproj(x)
-
+    def forward(self, x):
+        try:
+            return self.deproj(x)
+        except RuntimeError as exc:
+            msg = str(exc).lower()
+            if ('unable to find an engine' not in msg) and ('cudnn' not in msg):
+                raise
+            with torch.backends.cudnn.flags(enabled=False):
+                try:
+                    out = F.conv_transpose3d(
+                        x.float(),
+                        self.deproj.weight.float(),
+                        None if self.deproj.bias is None else self.deproj.bias.float(),
+                        stride=self.deproj.stride,
+                        padding=self.deproj.padding,
+                        output_padding=self.deproj.output_padding,
+                        groups=self.deproj.groups,
+                        dilation=self.deproj.dilation,
+                    )
+                except RuntimeError:
+                    # Last-resort fallback for drivers/kernels that still reject CUDA deconv.
+                    out = F.conv_transpose3d(
+                        x.float().cpu(),
+                        self.deproj.weight.float().cpu(),
+                        None if self.deproj.bias is None else self.deproj.bias.float().cpu(),
+                        stride=self.deproj.stride,
+                        padding=self.deproj.padding,
+                        output_padding=self.deproj.output_padding,
+                        groups=self.deproj.groups,
+                        dilation=self.deproj.dilation,
+                    ).to(device=x.device)
+            return out.to(dtype=x.dtype)
 
 class PixelShuffle3D(nn.Module):
     def __init__(self, scale):
@@ -292,7 +322,7 @@ class exPreCast_Model(nn.Module):
                  window_size=(2, 7, 7), mlp_ratio=4., drop_rate=0., drop_path_rate=0.2, **kwargs):
         super().__init__()
 
-        # 记录目标帧数
+        # 闂佽崵濮抽悞锕€顭垮Ο鑲╃鐎广儱顦伴崕搴亜閺冨倹娅曢柛銊ャ偢閹粙顢涢崱妤€顏繛?
         self.output_frames = aft_seq_length
         self.in_chans = in_shape[1]
         self.num_layers = len(depths)
@@ -326,10 +356,10 @@ class exPreCast_Model(nn.Module):
         self.apply(_init)
 
     def forward(self, x, **kwargs):
-        # # [DEBUG 探针]：只在第一批次打印
+        # # [DEBUG 闂備浇顫夋禍浠嬪垂娴犲绠い鈽呯秮閺屻劌鈽夊▎鎺戭棟閻熸粍濡搁崶褎宓嶉梺闈浤涚仦钘夊濠电偞鍨堕幐鎾磻閹剧粯鐓欏ù锝呭枤濞兼劖銇勯幇顑惧仮妤犵偛绉归獮姗€宕橀懠顑惧亼
         # debug = not hasattr(self, '_debug_printed')
         # if debug:
-        #     print(f"\n🟢 [探针] 前向传播开始！输入形状: {x.shape}，目标要输出: {self.output_frames} 帧")
+        #     print(f"\n婵☆偓绲介崯浼村储?[闂備浇顫夋禍浠嬪垂娴犲绠い?闂備礁鎲￠幐鍝ョ矓閹绢喖绠栨繝濠傚椤曢亶鏌ｅΟ鎸庣彧閻忓骏绱曢埀顒侇問閸犳帡宕戦幘鏂ユ斀妞ゆ梻鈷堥崕婊呯磼鏉堛劌绗氭繛鐓庣箻楠炴﹢宕橀幓鎺撹緢闁荤喐绮忛崺鍥垂缂佹ɑ鍙? {x.shape}闂備焦瀵х粙鎴︽儔閻撳篃鐑樺閺夋垵鍞ㄩ梺鎼炲労娴滆泛煤閿濆绾ч柛顐ゅ枑鐏忣參鏌? {self.output_frames} 闂?)
 
         x = x.permute(0, 2, 1, 3, 4).contiguous()
         x = self.patch_embed(x)
@@ -349,8 +379,8 @@ class exPreCast_Model(nn.Module):
 
         x = self.patch_expand3d(x)
 
-        # 1. 此时我们要看 x 的形状 (B, C, T, H, W)
-        # 如果这里 T 就已经是 9 了，说明是 U-Net 结构导致时间轴增加了
+        # 1. 婵犳鍠楃缓鍧楀磹閺嵮屾富闁稿瞼鍋涚粻锝夋煙鐎涙鐭嬬紒顕嗙畵閹兘寮村鍐插帯濠电姭鍋?x 闂備焦鐪归崝宀€鈧凹鍓熼幊婊勫鐎涙ê浜?(B, C, T, H, W)
+        # 濠电姷顣介埀顒€鍟块埀顒€缍婇幃妯诲緞鐎ｎ偂姘﹀┑鐐叉閹哥鈻?T 闂佽绻愮换鎰暦椤掑嫬绀勯柨娑樺绾惧ジ鐓崶銊︹拹缁?9 濠电偛鐡ㄧ划灞轿涚€靛憡顫曟繝闈涚墛鐎氭岸鎮楀☉娅虫垿锝為弽顓熺厸?U-Net 缂傚倸鍊烽悞锕傚箰婵犳碍鍊垫い鏍ㄥ閸嬫挻鎷呴崘顭戞闂佹悶浼囬崶褏鐫勯梺鍓插亝濞叉﹢鏁嶉悢鐓庣骇闁绘劕鐡ㄧ紞鎴炪亜閵堝懎鏆ｇ€规洘绻堥幃鈺傛綇閳轰焦娅?
 
         x = rearrange(x, 'B C T H W -> B T H W C')
         x = self.time_extractor(x)
@@ -358,7 +388,7 @@ class exPreCast_Model(nn.Module):
 
         out = x.permute(0, 2, 1, 3, 4).contiguous()
 
-        # 下面是你之前代码里的截断逻辑（可能没生效）
+        # 濠电偞鍨堕幐鎼侇敄婢跺鐒藉ù鍏兼綑閸欏﹥銇勯弽銊ф噮缂佸鍨甸埥澶愬棘濞嗘儳鍓版繝鈷€鍛ｇ紒鍌涘浮閺佹劙宕堕埡浣轰化闂傚倷鐒﹁ぐ鍐儔閻撳簶鏋旈柟杈剧畱缁狅絾銇勮箛鎾村櫤闁绘帊绮欏娲敃閿濆棭娼＄紓渚€顤傞崑濠囧极瀹ュ閱囨繝闈涙椤斿姊洪悡搴ｆ瀮濠殿喓鍊濋幆鈧柛娑樼摠閸嬨劑鏌ｉ弬鎸庡暈婵炲懎绻橀弻?
         if out.shape[1] > self.output_frames:
             out = out[:, :self.output_frames, ...].contiguous()
 
